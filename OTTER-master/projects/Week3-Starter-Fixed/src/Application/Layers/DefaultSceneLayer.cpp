@@ -152,11 +152,13 @@ void DefaultSceneLayer::_CreateScene()
 
 		// Load in the meshes
 		MeshResource::Sptr monkeyMesh = ResourceManager::CreateAsset<MeshResource>("Monkey.obj");
+		MeshResource::Sptr marioMesh = ResourceManager::CreateAsset<MeshResource>("mario.obj");
 
 		// Load in some textures
 		Texture2D::Sptr    boxTexture   = ResourceManager::CreateAsset<Texture2D>("textures/box-diffuse.png");
 		Texture2D::Sptr    boxSpec      = ResourceManager::CreateAsset<Texture2D>("textures/box-specular.png");
 		Texture2D::Sptr    monkeyTex    = ResourceManager::CreateAsset<Texture2D>("textures/monkey-uvMap.png");
+		Texture2D::Sptr    marioTex    = ResourceManager::CreateAsset<Texture2D>("textures/mario-uvMap.png");
 		Texture2D::Sptr    leafTex      = ResourceManager::CreateAsset<Texture2D>("textures/leaves.png");
 		leafTex->SetMinFilter(MinFilter::Nearest);
 		leafTex->SetMagFilter(MagFilter::Nearest);
@@ -167,7 +169,8 @@ void DefaultSceneLayer::_CreateScene()
 		toonLut->SetWrap(WrapMode::ClampToEdge);
 
 		// Here we'll load in the cubemap, as well as a special shader to handle drawing the skybox
-		TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/ocean/ocean.jpg");
+		//TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/ocean/ocean.jpg");
+		TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/mario/mario.jpg");
 		ShaderProgram::Sptr      skyboxShader = ResourceManager::CreateAsset<ShaderProgram>(std::unordered_map<ShaderPartType, std::string>{
 			{ ShaderPartType::Vertex, "shaders/vertex_shaders/skybox_vert.glsl" },
 			{ ShaderPartType::Fragment, "shaders/fragment_shaders/skybox_frag.glsl" }
@@ -204,6 +207,15 @@ void DefaultSceneLayer::_CreateScene()
 			monkeyMaterial->Set("u_Material.Diffuse", monkeyTex);
 			monkeyMaterial->Set("u_Material.Shininess", 0.5f);
 		}
+
+		// This will be the reflective material, we'll make the whole thing 90% reflective
+		Material::Sptr marioMaterial = ResourceManager::CreateAsset<Material>(reflectiveShader);
+		{
+			marioMaterial->Name = "Monkey";
+			marioMaterial->Set("u_Material.Diffuse", monkeyTex);
+			marioMaterial->Set("u_Material.Shininess", 0.5f);
+		}
+
 
 		// This will be the reflective material, we'll make the whole thing 90% reflective
 		Material::Sptr testMaterial = ResourceManager::CreateAsset<Material>(specShader);
@@ -350,6 +362,27 @@ void DefaultSceneLayer::_CreateScene()
 			monkey1->Add<TriggerVolumeEnterBehaviour>();
 		}
 
+		GameObject::Sptr mario = scene->CreateGameObject("Mario");
+		{
+			// Set position in the scene
+			mario->SetPostion(glm::vec3(3.5f, 0.0f, 1.0f));
+
+			// Add some behaviour that relies on the physics body
+			mario->Add<JumpBehaviour>();
+
+			// Create and attach a renderer for the monkey
+			RenderComponent::Sptr renderer = mario->Add<RenderComponent>();
+			renderer->SetMesh(marioMesh);
+			renderer->SetMaterial(marioMaterial);
+
+			// Example of a trigger that interacts with static and kinematic bodies as well as dynamic bodies
+			TriggerVolume::Sptr trigger = mario->Add<TriggerVolume>();
+			trigger->SetFlags(TriggerTypeFlags::Statics | TriggerTypeFlags::Kinematics);
+			trigger->AddCollider(BoxCollider::Create(glm::vec3(1.0f)));
+
+			mario->Add<TriggerVolumeEnterBehaviour>();
+		}
+
 		GameObject::Sptr demoBase = scene->CreateGameObject("Demo Parent");
 
 		// Box to showcase the specular material
@@ -465,42 +498,6 @@ void DefaultSceneLayer::_CreateScene()
 
 			trigger->Add<TriggerVolumeEnterBehaviour>();
 		}
-
-		/////////////////////////// UI //////////////////////////////
-		/*
-		GameObject::Sptr canvas = scene->CreateGameObject("UI Canvas");
-		{
-			RectTransform::Sptr transform = canvas->Add<RectTransform>();
-			transform->SetMin({ 16, 16 });
-			transform->SetMax({ 256, 256 });
-
-			GuiPanel::Sptr canPanel = canvas->Add<GuiPanel>();
-
-
-			GameObject::Sptr subPanel = scene->CreateGameObject("Sub Item");
-			{
-				RectTransform::Sptr transform = subPanel->Add<RectTransform>();
-				transform->SetMin({ 10, 10 });
-				transform->SetMax({ 128, 128 });
-
-				GuiPanel::Sptr panel = subPanel->Add<GuiPanel>();
-				panel->SetColor(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-				panel->SetTexture(ResourceManager::CreateAsset<Texture2D>("textures/upArrow.png"));
-
-				Font::Sptr font = ResourceManager::CreateAsset<Font>("fonts/Roboto-Medium.ttf", 16.0f);
-				font->Bake();
-
-				GuiText::Sptr text = subPanel->Add<GuiText>();
-				text->SetText("Hello world!");
-				text->SetFont(font);
-
-				monkey1->Get<JumpBehaviour>()->Panel = text;
-			}
-
-			canvas->AddChild(subPanel);
-		}
-		*/
 
 		GameObject::Sptr particles = scene->CreateGameObject("Particles");
 		{
