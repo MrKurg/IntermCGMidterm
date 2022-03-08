@@ -46,6 +46,8 @@ namespace Gameplay {
 		// The camera for our scene
 		Camera::Sptr               MainCamera;
 
+		GLFWwindow*				   Window; // another place that can use improvement
+
 		// Instead of a "base shader", we can specify a default material
 		std::shared_ptr<Material>  DefaultMaterial;
 
