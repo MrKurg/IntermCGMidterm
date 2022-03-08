@@ -46,6 +46,7 @@
 #include "Gameplay/Components/MaterialSwapBehaviour.h"
 #include "Gameplay/Components/TriggerVolumeEnterBehaviour.h"
 #include "Gameplay/Components/SimpleCameraControl.h"
+#include "Gameplay/Components/PlayerMovementBehaviour.h"
 
 // Physics
 #include "Gameplay/Physics/RigidBody.h"
@@ -167,7 +168,8 @@ void DefaultSceneLayer::_CreateScene()
 		toonLut->SetWrap(WrapMode::ClampToEdge);
 
 		// Here we'll load in the cubemap, as well as a special shader to handle drawing the skybox
-		TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/ocean/ocean.jpg");
+		//TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/ocean/ocean.jpg");
+		TextureCube::Sptr testCubemap = ResourceManager::CreateAsset<TextureCube>("cubemaps/mario/mario.jpg");
 		ShaderProgram::Sptr      skyboxShader = ResourceManager::CreateAsset<ShaderProgram>(std::unordered_map<ShaderPartType, std::string>{
 			{ ShaderPartType::Vertex, "shaders/vertex_shaders/skybox_vert.glsl" },
 			{ ShaderPartType::Fragment, "shaders/fragment_shaders/skybox_frag.glsl" }
@@ -280,7 +282,7 @@ void DefaultSceneLayer::_CreateScene()
 		scene->Lights.resize(3);
 		scene->Lights[0].Position = glm::vec3(0.0f, 1.0f, 3.0f);
 		scene->Lights[0].Color = glm::vec3(1.0f, 1.0f, 1.0f);
-		scene->Lights[0].Range = 100.0f;
+		scene->Lights[0].Range = 10000.0f;
 
 		scene->Lights[1].Position = glm::vec3(1.0f, 0.0f, 3.0f);
 		scene->Lights[1].Color = glm::vec3(0.2f, 0.8f, 0.1f);
@@ -301,7 +303,7 @@ void DefaultSceneLayer::_CreateScene()
 		GameObject::Sptr camera = scene->MainCamera->GetGameObject()->SelfRef();
 		{
 			camera->SetPostion({ -9, -6, 15 });
-			camera->LookAt(glm::vec3(0.0f));
+			camera->LookAt(glm::vec3(5.0f));
 
 			camera->Add<SimpleCameraControl>();
 
@@ -333,21 +335,35 @@ void DefaultSceneLayer::_CreateScene()
 		{
 			// Set position in the scene
 			monkey1->SetPostion(glm::vec3(1.5f, 0.0f, 1.0f));
+			monkey1->SetRotation(glm::vec3(90.f, 0.0f, 0.0f));
 
 			// Add some behaviour that relies on the physics body
 			monkey1->Add<JumpBehaviour>();
+			//monkey1->Add<PlayerMovementBehaviour>();
+
+			Camera::Sptr cam = monkey1->Add<Camera>();
+			scene->MainCamera = cam;
 
 			// Create and attach a renderer for the monkey
 			RenderComponent::Sptr renderer = monkey1->Add<RenderComponent>();
 			renderer->SetMesh(monkeyMesh);
 			renderer->SetMaterial(monkeyMaterial);
 
+			// Add a dynamic rigid body to this monkey
+			RigidBody::Sptr playerPhysics = monkey1->Add<RigidBody>(RigidBodyType::Dynamic);
+			playerPhysics->SetMass(1.0f);
+			//playerPhysics->AddCollider(ConvexMeshCollider::Create());
+			BoxCollider::Sptr playerCollider = BoxCollider::Create(glm::vec3(0.6f, 0.6f, 0.6f));
+			playerPhysics->AddCollider(playerCollider);
+			//playerPhysics->SetAngularFactor(glm::vec3(0.0f, 0.0f, 1.0f));
+			playerCollider->SetPosition(glm::vec3(0.0f, 0.8f, 0.0f));
+
 			// Example of a trigger that interacts with static and kinematic bodies as well as dynamic bodies
-			TriggerVolume::Sptr trigger = monkey1->Add<TriggerVolume>();
-			trigger->SetFlags(TriggerTypeFlags::Statics | TriggerTypeFlags::Kinematics);
+			/*TriggerVolume::Sptr trigger = monkey1->Add<TriggerVolume>();
+			trigger->SetFlags(TriggerTypeFlags::Statics | TriggerTypeFlags::Dynamics);
 			trigger->AddCollider(BoxCollider::Create(glm::vec3(1.0f)));
 
-			monkey1->Add<TriggerVolumeEnterBehaviour>();
+			monkey1->Add<TriggerVolumeEnterBehaviour>();*/
 		}
 
 		GameObject::Sptr demoBase = scene->CreateGameObject("Demo Parent");
